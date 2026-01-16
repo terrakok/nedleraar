@@ -8,34 +8,55 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.terrakok.nedleraar.ui.AppTheme
 import com.github.terrakok.nedleraar.ui.Icons
+import com.github.terrakok.nedleraar.ui.LoadingWidget
+import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 @Composable
 fun OpenQuestionPage(
-    question: String,
-    index: Int,
-    total: Int
+    id: String,
+    onBackClick: () -> Unit = {}
 ) {
+    val vm = assistedMetroViewModel<OpenQuestionViewModel, OpenQuestionViewModel.Factory>(key = id) {
+        create(id)
+    }
+    if (vm.loading || vm.error != null) {
+        LoadingWidget(
+            modifier = Modifier.fillMaxSize(),
+            error = vm.error,
+            loading = vm.loading,
+            onReload = { vm.loadData() }
+        )
+        return
+    }
+    val lesson = vm.lesson ?: return
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
-            TopBar(index, total)
+            TopBar(vm.currentQuestionIndex + 1, lesson.questions.size)
         },
         bottomBar = {
-            BottomBar()
+            BottomBar(
+                currentQuestionIndex = vm.currentQuestionIndex,
+                totalQuestions = lesson.questions.size,
+                onPreviousClick = vm::previousQuestion,
+                onNextClick = vm::nextQuestion
+            )
         }
     ) { paddingValues ->
         Column(
@@ -47,7 +68,7 @@ fun OpenQuestionPage(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
             Text(
-                text = question,
+                text = vm.question.text,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Medium,
                     lineHeight = 40.sp
@@ -69,7 +90,7 @@ fun OpenQuestionPage(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            var answer by remember { mutableStateOf("Ik wil graag een kopje koffie bestellen.") }
+            var answer by vm.answer
             TextField(
                 value = answer,
                 onValueChange = { answer = it },
@@ -89,7 +110,7 @@ fun OpenQuestionPage(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            FeedbackCard()
+            vm.feedback?.let { FeedbackCard(it) }
 
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -135,7 +156,7 @@ private fun TopBar(index: Int, total: Int) {
 }
 
 @Composable
-private fun FeedbackCard() {
+private fun FeedbackCard(feedback: Feedback) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -178,7 +199,7 @@ private fun FeedbackCard() {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "You used \"Ik wil\", which is correct but less polite than what was spoken.",
+                        text = feedback.text,
                         style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -198,11 +219,21 @@ private fun FeedbackCard() {
                             Text(
                                 text = buildAnnotatedString {
                                     append("Ik zou ")
-                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) {
+                                    withStyle(
+                                        SpanStyle(
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    ) {
                                         append("graag")
                                     }
                                     append(" een kopje koffie ")
-                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) {
+                                    withStyle(
+                                        SpanStyle(
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    ) {
                                         append("willen")
                                     }
                                     append(" bestellen.")
@@ -218,14 +249,18 @@ private fun FeedbackCard() {
 }
 
 @Composable
-private fun BottomBar() {
+private fun BottomBar(
+    currentQuestionIndex: Int,
+    totalQuestions: Int,
+    onPreviousClick: () -> Unit = {},
+    onNextClick: () -> Unit = {},
+) {
     Column {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
@@ -248,9 +283,26 @@ private fun BottomBar() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (currentQuestionIndex > 0) {
+                IconButton(
+                    onClick = onPreviousClick,
+                ) {
+                    Icon(
+                        imageVector = Icons.ArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp).rotate(180f),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+            }
 
             Button(
-                onClick = {},
+                enabled = currentQuestionIndex < totalQuestions - 1,
+                onClick = onNextClick,
                 modifier = Modifier.height(56.dp),
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -272,17 +324,5 @@ private fun BottomBar() {
                 )
             }
         }
-    }
-}
-
-@Preview
-@Composable
-private fun OpenQuestionPagePreview() {
-    AppTheme {
-        OpenQuestionPage(
-            question = "Translate the phrase spoken by the customer.",
-            index = 2,
-            total = 5
-        )
     }
 }

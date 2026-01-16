@@ -3,7 +3,9 @@ package com.github.terrakok.nedleraar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -26,6 +28,15 @@ fun App(
     AppTheme(onThemeChanged) {
         val backStack = remember { mutableStateListOf<NavKey>(WelcomeScreen) }
 
+        val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+        val isWide = windowSizeClass.isWide()
+        val last = backStack.lastOrNull()
+        LaunchedEffect(isWide, last) {
+            if (isWide && last is LessonScreen) {
+                backStack.add(OpenQuestionScreen(last.id))
+            }
+        }
+
         NavDisplay(
             backStack = backStack,
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLowest),
@@ -35,7 +46,6 @@ fun App(
                     WelcomePage(
                         onLessonHeaderClick = { lesson ->
                             backStack.add(LessonScreen(lesson.id))
-                            backStack.add(OpenQuestionScreen)
                         }
                     )
                 }
@@ -43,12 +53,18 @@ fun App(
                     metadata = SplitSceneStrategy.split()
                 ) {
                     LessonPage(
-                        id = it.videoId,
-                        onBackClick = { if (backStack.size > 1) backStack.removeLast() }
+                        id = it.id,
+                        onBackClick = {
+                            backStack.clear()
+                            backStack.add(WelcomeScreen)
+                        }
                     )
                 }
                 entry<OpenQuestionScreen> {
-                    OpenQuestionPage("Wat is het verschil tussen de vrije sector en de sociale sector voor huren?", 12, 5)
+                    OpenQuestionPage(
+                        id = it.id,
+                        onBackClick = { backStack.removeLast() }
+                    )
                 }
             }
         )
@@ -56,5 +72,5 @@ fun App(
 }
 
 private data object WelcomeScreen : NavKey
-private data class LessonScreen(val videoId: String) : NavKey
-private data object OpenQuestionScreen : NavKey
+private data class LessonScreen(val id: String) : NavKey
+private data class OpenQuestionScreen(val id: String) : NavKey

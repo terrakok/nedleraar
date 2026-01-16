@@ -15,6 +15,7 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
 import androidx.window.core.layout.WindowSizeClass
+import com.github.terrakok.nedleraar.isWide
 
 @Composable
 internal fun <T : Any> rememberSplitSceneStrategy(): SplitSceneStrategy<T> {
@@ -26,9 +27,8 @@ class SplitSceneStrategy<T : Any>(
     private val windowSizeClass: WindowSizeClass
 ) : SceneStrategy<T> {
     override fun SceneStrategyScope<T>.calculateScene(entries: List<NavEntry<T>>): Scene<T>? {
-        if (!windowSizeClass.isWidthAtLeastBreakpoint(WIDE_SIZE)) {
-            return null
-        }
+        if (!windowSizeClass.isWide()) return null
+
         val splitIndex = entries.indexOfLast { it.metadata.containsKey(SPLIT_KEY) }
         if (splitIndex == -1) return null
         val rightEntries = entries.subList(splitIndex + 1, entries.size)
@@ -37,12 +37,11 @@ class SplitSceneStrategy<T : Any>(
             entries.last().contentKey.toString() + entries.size,
             entries[splitIndex],
             rightEntries.lastOrNull(),
-            entries.dropLast(1)
+            entries.dropLast(1).filter { !it.metadata.containsKey(SPLIT_KEY) }
         )
     }
 
     companion object {
-        internal const val WIDE_SIZE = 800
         internal const val SPLIT_KEY = "split_strategy_key"
         fun split() = mapOf(SPLIT_KEY to Any())
     }
