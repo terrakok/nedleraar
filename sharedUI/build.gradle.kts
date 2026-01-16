@@ -47,6 +47,7 @@ kotlin {
             implementation(libs.multiplatformSettings)
             implementation(libs.kotlinx.datetime)
             implementation(libs.materialKolor)
+            implementation(libs.androidx.material3.adaptive)
         }
 
         commonTest.dependencies {

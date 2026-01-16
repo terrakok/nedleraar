@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 
 @Immutable
 data class VideoData(
-    val videoId: String,
+    val id: String,
     val title: String,
     val previewUrl: String,
     val lengthSeconds: Int,
@@ -13,5 +13,18 @@ data class VideoData(
 
 data class VideoText(
     val timestamp: Long,
+    val text: String
+)
+
+@Immutable
+data class Lesson(
+    val id: String,
+    val title: String,
+    val videoData: VideoData,
+    val questions: List<OpenQuestions>
+)
+
+data class OpenQuestions(
+    val id: String,
     val text: String
 )
