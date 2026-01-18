@@ -24,6 +24,8 @@ import com.github.terrakok.nedleraar.ui.AppTheme
 import com.github.terrakok.nedleraar.ui.Icons
 import com.github.terrakok.nedleraar.ui.LoadingWidget
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Preview
 @Composable
@@ -40,7 +42,8 @@ private fun LessonPagePreview() {
                     TranscriptionItem(2, "How are you?"),
                 ),
                 lengthSeconds = 0,
-                questions = emptyList()
+                questions = emptyList(),
+                createdAt = Clock.System.now()
             )
         )
     }

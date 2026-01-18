@@ -4,8 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -27,6 +30,7 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 import androidx.compose.ui.tooling.preview.Preview
 import com.github.terrakok.nedleraar.ui.AppTheme
+import kotlin.time.Clock
 
 @Preview
 @Composable
@@ -34,15 +38,14 @@ private fun WelcomePagePreview() {
     AppTheme {
         WelcomePageContent(
             items = listOf(
-                LessonHeader("1", "Groeten & Voorstellen", "", 255),
-                LessonHeader("2", "Koffie Bestellen", "", 200),
-                LessonHeader("3", "De Weg Vragen", "", 310),
-                LessonHeader("4", "Boodschappen Doen", "", 405),
+                LessonHeader("1", "Groeten & Voorstellen", "", 255, Clock.System.now()),
+                LessonHeader("2", "Koffie Bestellen", "", 200, Clock.System.now()),
+                LessonHeader("3", "De Weg Vragen", "", 310, Clock.System.now()),
+                LessonHeader("4", "Boodschappen Doen", "", 405, Clock.System.now()),
             )
         )
     }
 }
-
 
 
 @Composable
@@ -71,50 +74,62 @@ fun WelcomePageContent(
     items: List<LessonHeader>,
     onLessonHeaderClick: (LessonHeader) -> Unit = {}
 ) {
+    val state = rememberLazyGridState()
     Scaffold(
-        topBar = { WelcomeTopBar() },
-        bottomBar = { WelcomeFooter() },
+        topBar = {
+            Surface(
+                shadowElevation = if (state.canScrollBackward) 8.dp else 0.dp,
+            ) {
+                WelcomeTopBar()
+            }
+        },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(48.dp))
-            Text(
-                text = "Leer Nederlands",
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Verbeter je taalvaardigheid met interactieve videolessen",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(48.dp))
 
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 280.dp),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-                verticalArrangement = Arrangement.spacedBy(32.dp)
-            ) {
-                items(items) { lesson ->
-                    LessonCard(
-                        lesson = lesson,
-                        onClick = { onLessonHeaderClick(lesson) }
-                    )
-                }
+        LazyVerticalGrid(
+            state = state,
+            columns = GridCells.Adaptive(minSize = 280.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = paddingValues.plus(PaddingValues(horizontal = 16.dp, vertical = 48.dp)),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp)
+        ) {
+            item(
+                span = { GridItemSpan(maxCurrentLineSpan) }
+            ) { Header() }
+            items(items) { lesson ->
+                LessonCard(
+                    lesson = lesson,
+                    onClick = { onLessonHeaderClick(lesson) }
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun Header() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Leer Nederlands",
+            style = MaterialTheme.typography.displaySmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Verbeter je taalvaardigheid met interactieve videolessen",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(48.dp))
     }
 }
 
@@ -122,6 +137,7 @@ fun WelcomePageContent(
 private fun WelcomeTopBar() {
     Row(
         modifier = Modifier
+            .background(MaterialTheme.colorScheme.surface)
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -176,7 +192,7 @@ private fun LessonCard(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            
+
             // Duration badge
             Surface(
                 modifier = Modifier
@@ -193,41 +209,13 @@ private fun LessonCard(
                 )
             }
         }
-        
+
         Text(
             text = lesson.title,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(8.dp)
         )
-    }
-}
-
-@Composable
-private fun WelcomeFooter() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Open source and without analytics",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.Github,
-                contentDescription = "GitHub",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(18.dp)
-            )
-        }
     }
 }
 

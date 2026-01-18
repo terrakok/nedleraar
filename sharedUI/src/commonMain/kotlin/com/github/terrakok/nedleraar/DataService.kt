@@ -14,6 +14,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlin.time.Instant
 
 @Inject
 @SingleIn(AppScope::class)
@@ -35,9 +37,10 @@ class DataService(
                     id = jo.getValue("id").jsonPrimitive.content,
                     title = jo.getValue("title").jsonPrimitive.content,
                     previewUrl = jo.getValue("pictureUrl").jsonPrimitive.content,
-                    lengthSeconds = 777, //todo
+                    lengthSeconds = 777, //todo,
+                    createdAt = Instant.parse(jo.getValue("createdAt").jsonPrimitive.content.replace(" ", "T"))
                 )
-            }.sortedBy { it.id }
+            }.sortedByDescending { it.createdAt }
             headers.addAll(new)
         }
         headers
@@ -59,7 +62,8 @@ class DataService(
                 previewUrl = jo.getValue("pictureUrl").jsonPrimitive.content,
                 lengthSeconds = 777, //todo
                 videoTranscription = transcription,
-                questions = questions
+                questions = questions,
+                createdAt = Instant.parse(jo.getValue("createdAt").jsonPrimitive.content.replace(" ", "T"))
             )
         }
     }
