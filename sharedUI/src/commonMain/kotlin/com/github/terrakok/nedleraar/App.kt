@@ -60,6 +60,9 @@ fun App(
                 ) {
                     LessonPage(
                         id = it.id,
+                        onLearnClick = { id ->
+                            backStack.add(OpenQuestionScreen(id))
+                        },
                         onBackClick = {
                             backStack.clear()
                             backStack.add(WelcomeScreen)

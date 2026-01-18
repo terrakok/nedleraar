@@ -23,6 +23,7 @@ import com.github.terrakok.nedleraar.TranscriptionItem
 import com.github.terrakok.nedleraar.ui.AppTheme
 import com.github.terrakok.nedleraar.ui.Icons
 import com.github.terrakok.nedleraar.ui.LoadingWidget
+import com.github.terrakok.nedleraar.ui.LocalIsSplitMode
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -52,6 +53,7 @@ private fun LessonPagePreview() {
 @Composable
 fun LessonPage(
     id: String,
+    onLearnClick: (id: String) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
     val vm = assistedMetroViewModel<LessonViewModel, LessonViewModel.Factory>(key = id) {
@@ -67,14 +69,19 @@ fun LessonPage(
         return
     }
 
-    LessonPageContent(vm.lesson!!, onBackClick)
+    LessonPageContent(
+        lesson = vm.lesson!!,
+        onLearnClick = { onLearnClick(id) },
+        onBackClick = onBackClick
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LessonPageContent(
     lesson: Lesson,
-    onBackClick: () -> Unit = {}
+    onLearnClick: () -> Unit = {},
+    onBackClick: () -> Unit = {},
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -118,27 +125,50 @@ private fun LessonPageContent(
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier.fillMaxWidth()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            VideoPlayerPlaceholder(lesson.previewUrl)
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = "TRANSCRIPT",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.outline
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(lesson.videoTranscription) { textSegment ->
-                    TextSegmentItem(textSegment, false)
+            Column {
+                Spacer(modifier = Modifier.height(16.dp))
+                VideoPlayerPlaceholder(lesson.previewUrl)
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    text = "TRANSCRIPT",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(lesson.videoTranscription) { textSegment ->
+                        TextSegmentItem(textSegment, false)
+                    }
+                    item {
+                        if (!LocalIsSplitMode.current) {
+                            Spacer(modifier = Modifier.height(100.dp))
+                        } else {
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
+                    }
                 }
-                item { Spacer(modifier = Modifier.height(24.dp)) }
+            }
+            if (!LocalIsSplitMode.current) {
+                ExtendedFloatingActionButton(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 40.dp, end = 16.dp),
+                    onClick = onLearnClick,
+                ) {
+                    Icon(
+                        imageVector = Icons.School,
+                        contentDescription = "Learn",
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Learn")
+                }
             }
         }
     }
