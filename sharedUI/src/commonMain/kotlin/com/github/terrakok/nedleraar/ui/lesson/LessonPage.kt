@@ -9,6 +9,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -132,7 +136,7 @@ private fun LessonPageContent(
         ) {
             Column {
                 Spacer(modifier = Modifier.height(16.dp))
-                VideoPlayerPlaceholder(lesson.previewUrl)
+                VideoPlayerPlaceholder(lesson.videoId, lesson.previewUrl)
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
                     text = "TRANSCRIPT",
@@ -175,7 +179,10 @@ private fun LessonPageContent(
 }
 
 @Composable
-private fun VideoPlayerPlaceholder(previewUrl: String) {
+private fun VideoPlayerPlaceholder(
+    videoId: String,
+    previewUrl: String
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -184,32 +191,38 @@ private fun VideoPlayerPlaceholder(previewUrl: String) {
             .background(MaterialTheme.colorScheme.secondary),
         contentAlignment = Alignment.Center
     ) {
-        AsyncImage(
-            model = previewUrl,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-        )
+        var showEmbedded by remember { mutableStateOf(false) }
+        if (!showEmbedded) {
+            AsyncImage(
+                model = previewUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
 
-        Surface(
-            modifier = Modifier.size(64.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Play,
-                    contentDescription = "Play",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp).offset(x = 2.dp)
-                )
+            Surface(
+                modifier = Modifier.size(64.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Play,
+                        contentDescription = "Play",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp).offset(x = 2.dp)
+                    )
+                }
             }
         }
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable {}
+                .clickable { showEmbedded = true }
         )
+        if (showEmbedded) {
+            YouTubeWidget(videoId = videoId, modifier = Modifier.fillMaxSize())
+        }
     }
 }
 
