@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -22,7 +23,7 @@ import kotlin.time.Instant
 class DataService(
     private val httpClient: HttpClient
 ) {
-    private val API_URL = "https://eymar.nl/lang-practice/data/"
+    private val API_URL = "https://eymar.nl/lang-practice/datav2/"
     private val dispatcher = Dispatchers.Default.limitedParallelism(1)
 
     private val headers = mutableListOf<LessonHeader>()
@@ -37,7 +38,7 @@ class DataService(
                     id = jo.getValue("id").jsonPrimitive.content,
                     title = jo.getValue("title").jsonPrimitive.content,
                     previewUrl = jo.getValue("pictureUrl").jsonPrimitive.content,
-                    lengthSeconds = 777, //todo,
+                    lengthSeconds = jo["videoDuration"]?.jsonPrimitive?.int ?: 0,
                     createdAt = Instant.parse(jo.getValue("createdAt").jsonPrimitive.content.replace(" ", "T"))
                 )
             }.sortedByDescending { it.createdAt }
@@ -53,14 +54,19 @@ class DataService(
                 .mapIndexed { index, string -> TranscriptionItem(index + 1, string) }
             val practice = jo.getValue("practice").jsonObject
             val questions = practice.getValue("open_questions").jsonArray.mapIndexed { index, element ->
-                OpenQuestion(index.toString(), element.jsonPrimitive.content)
+                val q = element.jsonObject
+                OpenQuestion(
+                    id = index.toString(),
+                    text = q.getValue("question").jsonPrimitive.content,
+                    textEn = q.getValue("question_en").jsonPrimitive.content
+                )
             }
             Lesson(
                 id = id,
                 videoId = jo.getValue("videoId").jsonPrimitive.content,
                 title = jo.getValue("title").jsonPrimitive.content,
                 previewUrl = jo.getValue("pictureUrl").jsonPrimitive.content,
-                lengthSeconds = 777, //todo
+                lengthSeconds = jo.getValue("videoDuration").jsonPrimitive.int,
                 videoTranscription = transcription,
                 questions = questions,
                 createdAt = Instant.parse(jo.getValue("createdAt").jsonPrimitive.content.replace(" ", "T"))

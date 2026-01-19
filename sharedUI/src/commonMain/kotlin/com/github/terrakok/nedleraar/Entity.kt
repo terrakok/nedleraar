@@ -30,5 +30,6 @@ data class TranscriptionItem(
 
 data class OpenQuestion(
     val id: String,
-    val text: String
+    val text: String,
+    val textEn: String
 )

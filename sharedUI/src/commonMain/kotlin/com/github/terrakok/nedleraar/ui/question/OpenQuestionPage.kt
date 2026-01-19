@@ -78,7 +78,7 @@ fun OpenQuestionPage(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Type your answer in Dutch below. Pay attention to the polite form.",
+                text = vm.question.textEn,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
