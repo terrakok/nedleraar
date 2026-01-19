@@ -1,5 +1,8 @@
 package com.github.terrakok.nedleraar
 
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +48,8 @@ fun App(
             backStack = backStack,
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLowest),
             sceneStrategy = rememberSplitSceneStrategy(),
+            transitionSpec = { ContentTransform(EnterTransition.None, ExitTransition.None) },
+            popTransitionSpec = { ContentTransform(EnterTransition.None, ExitTransition.None) },
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator()
