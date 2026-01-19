@@ -73,6 +73,10 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
 
+        webMain.dependencies {
+            implementation(libs.navigation3.browser)
+        }
+
     }
 
     targets

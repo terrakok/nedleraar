@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -28,7 +29,8 @@ fun App(
     onThemeChanged: @Composable (isDark: Boolean) -> Unit = {}
 ) = WithAppGraph {
     AppTheme(onThemeChanged) {
-        val backStack = remember { mutableStateListOf<NavKey>(WelcomeScreen) }
+        val backStack = remember { mutableStateListOf<AppNavKey>(WelcomeScreen) }
+        BrowserNavigation(backStack)
 
         val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
         val isWide = windowSizeClass.isWide()
@@ -80,6 +82,10 @@ fun App(
     }
 }
 
-private data object WelcomeScreen : NavKey
-private data class LessonScreen(val id: String) : NavKey
-private data class OpenQuestionScreen(val id: String) : NavKey
+internal sealed interface AppNavKey : NavKey
+internal data object WelcomeScreen : AppNavKey
+internal data class LessonScreen(val id: String) : AppNavKey
+internal data class OpenQuestionScreen(val id: String) : AppNavKey
+
+@Composable
+internal expect fun BrowserNavigation(backStack: SnapshotStateList<AppNavKey>)
