@@ -8,6 +8,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -74,9 +75,18 @@ class DataService(
         }
     }
 
-    private val sentenceRegex = "(?<=[.!?])\\s+".toRegex()
-    private fun String.splitBySentences() =
-        split(sentenceRegex)
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
+    private fun String.splitBySentences(): List<String> {
+        val result = mutableListOf<String>()
+        var lastStart = 0
+        for (i in indices) {
+            if (this[i] in ".!?") {
+                val sentence = substring(lastStart, i + 1).trim()
+                if (sentence.isNotEmpty()) result.add(sentence)
+                lastStart = i + 1
+            }
+        }
+        val remaining = substring(lastStart).trim()
+        if (remaining.isNotEmpty()) result.add(remaining)
+        return result
+    }
 }
