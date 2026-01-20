@@ -94,7 +94,7 @@ fun OpenQuestionPage(
             var answer by vm.answer
             TextField(
                 value = answer,
-                onValueChange = { answer = it },
+                onValueChange = { answer = it.replace('\n', ' ') },
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 20.sp,
@@ -111,9 +111,7 @@ fun OpenQuestionPage(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            vm.feedback?.let { FeedbackCard(it) }
-
-            Spacer(modifier = Modifier.height(32.dp))
+            FeedbackCard(vm.answer.value.trim(), vm.feedback) { vm.getFeedback() }
         }
     }
 }
@@ -187,92 +185,92 @@ private fun TopBar(
 }
 
 @Composable
-private fun FeedbackCard(feedback: Feedback) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
-    ) {
-        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+private fun FeedbackCard(
+    currentAnswer: String,
+    feedback: Feedback?,
+    onCheckClick: () -> Unit = {}
+) {
+    Column {
+        if (feedback is Feedback.Correct || feedback is Feedback.Incorrect) {
+            val color = if (feedback is Feedback.Correct) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.error
+            }
+            val containerColor = if (feedback is Feedback.Correct) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.errorContainer
+            }
+            val icon = if (feedback is Feedback.Correct) {
+                Icons.Check
+            } else {
+                Icons.Close
+            }
             Box(
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .width(4.dp)
-                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
-            )
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.Top
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(color.copy(alpha = 0.8f))
+                    .padding(start = 4.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(containerColor),
             ) {
-                Surface(
-                    modifier = Modifier.size(24.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface
+                Row(
+                    modifier = Modifier.padding(16.dp),
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    Surface(
+                        modifier = Modifier.size(24.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
                         Icon(
-                            imageVector = Icons.Close,
+                            imageVector = icon,
                             contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                            modifier = Modifier.size(12.dp).padding(4.dp),
+                            tint = color
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = feedback.title,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            ),
+                            color = color.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = feedback.text,
+                            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = "ALMOST THERE",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        ),
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            OutlinedButton(
+                onClick = onCheckClick,
+                enabled = currentAnswer.isNotBlank() && currentAnswer != feedback?.answer.orEmpty(),
+                modifier = Modifier.widthIn(min = 200.dp),
+                shape = RoundedCornerShape(50),
+            ) {
+                if (feedback is Feedback.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                } else {
                     Text(
-                        text = feedback.text,
-                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = if (feedback == null) "CHECK ANSWER" else "TRY AGAIN",
+                        style = MaterialTheme.typography.labelLarge,
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Correct answer:",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = buildAnnotatedString {
-                                    append("Ik zou ")
-                                    withStyle(
-                                        SpanStyle(
-                                            color = MaterialTheme.colorScheme.secondary,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    ) {
-                                        append("graag")
-                                    }
-                                    append(" een kopje koffie ")
-                                    withStyle(
-                                        SpanStyle(
-                                            color = MaterialTheme.colorScheme.secondary,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    ) {
-                                        append("willen")
-                                    }
-                                    append(" bestellen.")
-                                },
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -336,21 +334,6 @@ private fun BottomBar(
             }
 
             Spacer(modifier = Modifier.weight(1f))
-
-//            if (currentQuestionIndex > 0) {
-//                IconButton(
-//                    onClick = onPreviousClick,
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.ArrowRight,
-//                        contentDescription = null,
-//                        modifier = Modifier.size(20.dp).rotate(180f),
-//                        tint = MaterialTheme.colorScheme.onSurface
-//                    )
-//                }
-//
-//                Spacer(modifier = Modifier.width(16.dp))
-//            }
         }
     }
 }

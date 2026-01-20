@@ -19,11 +19,24 @@ import kotlinx.coroutines.launch
 
 @Immutable
 sealed interface Feedback {
+    val answer: String
+    val title: String
     val text: String
-
-    data class Loading(override val text: String) : Feedback
-    data class Correct(override val text: String) : Feedback
-    data class Incorrect(override val text: String) : Feedback
+    data class Loading(
+        override val answer: String,
+        override val title: String = "",
+        override val text: String = ""
+    ) : Feedback
+    data class Correct(
+        override val answer: String,
+        override val title: String,
+        override val text: String
+    ) : Feedback
+    data class Incorrect(
+        override val answer: String,
+        override val title: String,
+        override val text: String
+    ) : Feedback
 }
 
 @AssistedInject
@@ -81,9 +94,9 @@ class OpenQuestionViewModel(
     private fun checkAnswer(qId: String, answer: String) {
         viewModelScope.launch {
             if (results[qId] is Feedback.Loading) return@launch
-            results[qId] = Feedback.Loading("...")
+            results[qId] = Feedback.Loading(answer)
             delay(2000)
-            results[qId] = Feedback.Incorrect("Incorrect")
+            results[qId] = Feedback.Incorrect(answer, "Almost there", "There are no correct answers")
         }
     }
 
