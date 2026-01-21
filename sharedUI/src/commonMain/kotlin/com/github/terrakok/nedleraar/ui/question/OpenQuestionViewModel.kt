@@ -92,11 +92,25 @@ class OpenQuestionViewModel(
     }
 
     private fun checkAnswer(qId: String, answer: String) {
+        val lessonId = lesson?.id ?: return
         viewModelScope.launch {
             if (results[qId] is Feedback.Loading) return@launch
             results[qId] = Feedback.Loading(answer)
-            delay(2000)
-            results[qId] = Feedback.Incorrect(answer, "Almost there", "There are no correct answers")
+            val result = dataService.checkAnswer(lessonId, qId, answer)
+
+            if (!result.contains("Score:")) {
+                results[qId] = Feedback.Incorrect(answer, "Try again", result)
+            } else {
+                val regex = Regex("""Score:\s*([0-9]+(?:\.[0-9]+)?)\s*/\s*([0-9]+(?:\.[0-9]+)?)""")
+                val match = regex.find(result)
+                val score = match?.destructured?.component1()?.toFloatOrNull() ?: 0f
+
+                if (score >= 3f) {
+                    results[qId] = Feedback.Correct(answer, "Good", result)
+                } else {
+                    results[qId] = Feedback.Incorrect(answer, "Too many mistakes", result)
+                }
+            }
         }
     }
 

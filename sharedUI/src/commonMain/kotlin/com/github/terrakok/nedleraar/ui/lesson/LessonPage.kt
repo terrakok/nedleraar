@@ -48,7 +48,8 @@ private fun LessonPagePreview() {
                 ),
                 lengthSeconds = 0,
                 questions = emptyList(),
-                createdAt = Clock.System.now()
+                createdAt = Clock.System.now(),
+                lang = "nl_en"
             )
         )
     }

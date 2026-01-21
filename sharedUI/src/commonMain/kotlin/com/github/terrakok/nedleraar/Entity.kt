@@ -21,6 +21,7 @@ data class Lesson(
     val videoTranscription: List<TranscriptionItem>,
     val questions: List<OpenQuestion>,
     val createdAt: Instant,
+    val lang: String,
 )
 
 data class TranscriptionItem(

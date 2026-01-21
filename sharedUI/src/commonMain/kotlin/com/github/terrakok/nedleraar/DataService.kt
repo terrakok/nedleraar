@@ -1,14 +1,14 @@
 package com.github.terrakok.nedleraar
 
-import androidx.compose.runtime.mutableStateListOf
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -16,7 +16,6 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
 import kotlin.time.Instant
 
 @Inject
@@ -24,7 +23,10 @@ import kotlin.time.Instant
 class DataService(
     private val httpClient: HttpClient
 ) {
-    private val API_URL = "https://eymar.nl/lang-practice/datav2/"
+    private val BASE_URL = "https://eymar.nl/lang-practice"
+    private val LESSONS_COLLECTION_URL = "$BASE_URL/datav2/"
+    private val API_URL = "$BASE_URL/api/"
+
     private val dispatcher = Dispatchers.Default.limitedParallelism(1)
 
     private val headers = mutableListOf<LessonHeader>()
@@ -32,7 +34,7 @@ class DataService(
 
     suspend fun getLessons(): List<LessonHeader> = withContext(dispatcher) {
         if (headers.isEmpty()) {
-            val json = httpClient.get(API_URL + "index.json").body<JsonArray>()
+            val json = httpClient.get(LESSONS_COLLECTION_URL + "index.json").body<JsonArray>()
             val new = json.map {
                 val jo = it.jsonObject
                 LessonHeader(
@@ -50,14 +52,14 @@ class DataService(
 
     suspend fun getLesson(id: String): Lesson = withContext(dispatcher) {
         lessons.getOrPut(id) {
-            val jo = httpClient.get(API_URL + "items/${id}.json").body<JsonObject>()
+            val jo = httpClient.get(LESSONS_COLLECTION_URL + "items/${id}.json").body<JsonObject>()
             val transcription = jo.getValue("transcription").jsonPrimitive.content.splitBySentences()
                 .mapIndexed { index, string -> TranscriptionItem(index + 1, string) }
             val practice = jo.getValue("practice").jsonObject
             val questions = practice.getValue("open_questions").jsonArray.mapIndexed { index, element ->
                 val q = element.jsonObject
                 OpenQuestion(
-                    id = index.toString(),
+                    id = q.getValue("id").jsonPrimitive.content,
                     text = q.getValue("question").jsonPrimitive.content,
                     textEn = q.getValue("question_en").jsonPrimitive.content
                 )
@@ -70,7 +72,8 @@ class DataService(
                 lengthSeconds = jo.getValue("videoDuration").jsonPrimitive.int,
                 videoTranscription = transcription,
                 questions = questions,
-                createdAt = Instant.parse(jo.getValue("createdAt").jsonPrimitive.content.replace(" ", "T"))
+                createdAt = Instant.parse(jo.getValue("createdAt").jsonPrimitive.content.replace(" ", "T")),
+                lang = jo.getValue("language").jsonPrimitive.content
             )
         }
     }
@@ -88,5 +91,26 @@ class DataService(
         val remaining = substring(lastStart).trim()
         if (remaining.isNotEmpty()) result.add(remaining)
         return result
+    }
+
+    suspend fun checkAnswer(
+        lessonId: String,
+        questionId: String,
+        answer: String
+    ): String {
+        val lang = getLesson(lessonId).lang
+        val jo = httpClient.get(API_URL + "check_answer", {
+            parameter("lessonId", lessonId)
+            parameter("lang", lang)
+            parameter("questionId", questionId)
+            parameter("answer", answer)
+            timeout { requestTimeoutMillis = 60_000  }
+        }).body<JsonObject>()
+
+        if (jo.containsKey("error") && jo["error"] != null) {
+            return jo.getValue("error").jsonPrimitive.content
+        }
+
+        return jo.getValue("result").jsonPrimitive.content
     }
 }
