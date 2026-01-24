@@ -38,7 +38,7 @@ internal interface AppGraph: ViewModelGraph {
                     co.touchlab.kermit.Logger.d("httpClient") { message }
                 }
             }
-            level = if (DEBUG) LogLevel.ALL else LogLevel.NONE
+            level = if (DEBUG) LogLevel.INFO else LogLevel.NONE
         }
         install(HttpTimeout) {
             requestTimeoutMillis = 10000

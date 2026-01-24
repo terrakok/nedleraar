@@ -1,6 +1,7 @@
 package com.github.terrakok.nedleraar
 
 import androidx.compose.runtime.Immutable
+import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
 data class LessonHeader(
@@ -34,3 +35,24 @@ data class OpenQuestion(
     val text: String,
     val textEn: String
 )
+
+enum class FeedbackStatus {
+    DRAFT,
+    LOADING,
+    ACTUAL,
+    OUTDATED
+}
+
+data class FeedbackResult(
+    val title: String,
+    val message: String,
+    val isCorrect: Boolean
+)
+
+data class Feedback(
+    val answer: String,
+    val result: FeedbackResult? = null,
+    val status: FeedbackStatus
+)
+
+fun EmptyFeedback() = Feedback("", null, FeedbackStatus.DRAFT)

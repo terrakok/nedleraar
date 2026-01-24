@@ -10,7 +10,7 @@ import co.touchlab.kermit.platformLogWriter
 private const val WIDE_SCREEN = 800
 fun WindowSizeClass.isWide() = isWidthAtLeastBreakpoint(WIDE_SCREEN)
 
-const val DEBUG = false
+const val DEBUG = true
 val Log = object : co.touchlab.kermit.Logger(
     config = loggerConfigInit(
         platformLogWriter(NoTagFormatter),

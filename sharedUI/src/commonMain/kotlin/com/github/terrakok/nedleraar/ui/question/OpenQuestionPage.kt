@@ -9,19 +9,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.terrakok.nedleraar.EmptyFeedback
+import com.github.terrakok.nedleraar.Feedback
+import com.github.terrakok.nedleraar.FeedbackStatus
 import com.github.terrakok.nedleraar.ui.Icons
 import com.github.terrakok.nedleraar.ui.LoadingWidget
 import com.github.terrakok.nedleraar.ui.LocalIsSplitMode
@@ -91,12 +96,16 @@ fun OpenQuestionPage(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            var answer by vm.answer
-            val isFeedbackLoading = vm.feedback is Feedback.Loading
+            var feedback by remember { mutableStateOf(EmptyFeedback()) }
+            LaunchedEffect(vm.currentQuestionIndex) {
+                vm.feedback.collect { feedback = it }
+            }
+
+            val isFeedbackLoading = feedback.status == FeedbackStatus.LOADING
             TextField(
                 enabled = !isFeedbackLoading,
-                value = answer,
-                onValueChange = { answer = it.replace('\n', ' ') },
+                value = feedback.answer,
+                onValueChange = { vm.updateAnswer(it.replace('\n', ' ')) },
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 20.sp,
@@ -113,7 +122,7 @@ fun OpenQuestionPage(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            FeedbackCard(vm.answer.value.trim(), vm.feedback) { vm.getFeedback() }
+            FeedbackCard(feedback.answer, feedback) { vm.checkAnswer() }
         }
     }
 }
@@ -189,22 +198,23 @@ private fun TopBar(
 @Composable
 private fun FeedbackCard(
     currentAnswer: String,
-    feedback: Feedback?,
+    feedback: Feedback,
     onCheckClick: () -> Unit = {}
 ) {
     Column {
-        if (feedback is Feedback.Correct || feedback is Feedback.Incorrect) {
-            val color = if (feedback is Feedback.Correct) {
+        val result = feedback.result
+        if (result != null) {
+            val color = if (result.isCorrect) {
                 MaterialTheme.colorScheme.primary
             } else {
                 MaterialTheme.colorScheme.error
             }
-            val containerColor = if (feedback is Feedback.Correct) {
+            val containerColor = if (result.isCorrect) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
                 MaterialTheme.colorScheme.errorContainer
             }
-            val icon = if (feedback is Feedback.Correct) {
+            val icon = if (result.isCorrect) {
                 Icons.Check
             } else {
                 Icons.Close
@@ -236,7 +246,7 @@ private fun FeedbackCard(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
-                            text = feedback.title,
+                            text = result.title,
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.sp
@@ -245,7 +255,7 @@ private fun FeedbackCard(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = feedback.text,
+                            text = result.message,
                             style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -260,17 +270,17 @@ private fun FeedbackCard(
         ) {
             OutlinedButton(
                 onClick = onCheckClick,
-                enabled = currentAnswer.isNotBlank() && currentAnswer != feedback?.answer.orEmpty(),
+                enabled = feedback.status == FeedbackStatus.OUTDATED || feedback.status == FeedbackStatus.DRAFT,
                 modifier = Modifier.widthIn(min = 200.dp),
                 shape = RoundedCornerShape(50),
             ) {
-                if (feedback is Feedback.Loading) {
+                if (feedback.status == FeedbackStatus.LOADING) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                     )
                 } else {
                     Text(
-                        text = if (feedback == null) "CHECK ANSWER" else "TRY AGAIN",
+                        text = if (feedback.status == FeedbackStatus.DRAFT) "CHECK ANSWER" else "TRY AGAIN",
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
