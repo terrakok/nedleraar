@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.float
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -53,8 +54,13 @@ class DataService(
     suspend fun getLesson(id: String): Lesson = withContext(dispatcher) {
         lessons.getOrPut(id) {
             val jo = httpClient.get(LESSONS_COLLECTION_URL + "items/${id}.json").body<JsonObject>()
-            val transcription = jo.getValue("transcription").jsonPrimitive.content.splitBySentences()
-                .mapIndexed { index, string -> TranscriptionItem(index + 1, string) }
+            val transcription = jo.getValue("transcriptionSentences").jsonArray.map { item ->
+                val jo = item.jsonObject
+                TranscriptionItem(
+                    time = jo.getValue("start").jsonPrimitive.float.toInt(),
+                    text = jo.getValue("text").jsonPrimitive.content
+                )
+            }
             val practice = jo.getValue("practice").jsonObject
             val questions = practice.getValue("open_questions").jsonArray.mapIndexed { index, element ->
                 val q = element.jsonObject
@@ -76,21 +82,6 @@ class DataService(
                 lang = jo.getValue("language").jsonPrimitive.content
             )
         }
-    }
-
-    private fun String.splitBySentences(): List<String> {
-        val result = mutableListOf<String>()
-        var lastStart = 0
-        for (i in indices) {
-            if (this[i] in ".!?") {
-                val sentence = substring(lastStart, i + 1).trim()
-                if (sentence.isNotEmpty()) result.add(sentence)
-                lastStart = i + 1
-            }
-        }
-        val remaining = substring(lastStart).trim()
-        if (remaining.isNotEmpty()) result.add(remaining)
-        return result
     }
 
     suspend fun checkAnswer(

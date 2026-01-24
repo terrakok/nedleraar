@@ -9,7 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 
 @Composable
-actual fun YouTubeWidget(videoId: String, modifier: Modifier) {
+actual fun YouTubeWidget(
+    videoId: String,
+    controller: YouTubeController,
+    modifier: Modifier
+) {
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center

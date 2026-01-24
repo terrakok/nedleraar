@@ -4,15 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,8 +26,10 @@ import com.github.terrakok.nedleraar.ui.Icons
 import com.github.terrakok.nedleraar.ui.LoadingWidget
 import com.github.terrakok.nedleraar.ui.LocalIsSplitMode
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 @Preview
 @Composable
@@ -136,8 +135,15 @@ private fun LessonPageContent(
                 .padding(horizontal = 16.dp)
         ) {
             Column {
+                val playerController = remember { YouTubeController() }
+                val videoProgress by playerController.progress.receiveAsFlow().collectAsState(0)
+
                 Spacer(modifier = Modifier.height(16.dp))
-                VideoPlayerPlaceholder(lesson.videoId, lesson.previewUrl)
+                VideoPlayerPlaceholder(
+                    videoId = lesson.videoId,
+                    controller = playerController,
+                    previewUrl = lesson.previewUrl
+                )
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
                     text = "TRANSCRIPT",
@@ -145,11 +151,34 @@ private fun LessonPageContent(
                     color = MaterialTheme.colorScheme.outline
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+
+                val state = rememberLazyListState()
+                val activeSegmentIndex by remember {
+                    derivedStateOf {
+                        val second = lesson.videoTranscription.getOrNull(1)?.time ?: Int.MAX_VALUE
+                        if (videoProgress < second) {
+                            0
+                        } else {
+                            lesson.videoTranscription.indexOfLast { videoProgress >= it.time }
+                        }
+                    }
+                }
+                LaunchedEffect(activeSegmentIndex) {
+                    state.animateScrollToItem(
+                        index = (activeSegmentIndex - 1).coerceAtLeast(0)
+                    )
+                }
+
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    state = state
                 ) {
-                    items(lesson.videoTranscription) { textSegment ->
-                        TextSegmentItem(textSegment, false)
+                    itemsIndexed(lesson.videoTranscription) { index, textSegment ->
+                        TextSegmentItem(
+                            transcriptionItem = textSegment,
+                            onClick = { playerController.seekTo(textSegment.time) },
+                            isActive = index == activeSegmentIndex
+                        )
                     }
                     item {
                         if (!LocalIsSplitMode.current) {
@@ -169,10 +198,10 @@ private fun LessonPageContent(
                 ) {
                     Icon(
                         imageVector = Icons.School,
-                        contentDescription = "Learn",
+                        contentDescription = "Practice",
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Learn")
+                    Text(text = "Practice")
                 }
             }
         }
@@ -182,6 +211,7 @@ private fun LessonPageContent(
 @Composable
 private fun VideoPlayerPlaceholder(
     videoId: String,
+    controller: YouTubeController,
     previewUrl: String
 ) {
     Box(
@@ -192,8 +222,7 @@ private fun VideoPlayerPlaceholder(
             .background(MaterialTheme.colorScheme.secondary),
         contentAlignment = Alignment.Center
     ) {
-        var showEmbedded by remember { mutableStateOf(false) }
-        if (!showEmbedded) {
+        if (!controller.play) {
             AsyncImage(
                 model = previewUrl,
                 contentDescription = null,
@@ -219,10 +248,14 @@ private fun VideoPlayerPlaceholder(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable { showEmbedded = true }
+                .clickable { controller.play = true }
         )
-        if (showEmbedded) {
-            YouTubeWidget(videoId = videoId, modifier = Modifier.fillMaxSize())
+        if (controller.play) {
+            YouTubeWidget(
+                videoId = videoId,
+                controller = controller,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
@@ -230,6 +263,7 @@ private fun VideoPlayerPlaceholder(
 @Composable
 private fun TextSegmentItem(
     transcriptionItem: TranscriptionItem,
+    onClick: () -> Unit,
     isActive: Boolean
 ) {
     val timestampColor =
@@ -238,7 +272,7 @@ private fun TextSegmentItem(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .clickable { /* Handle click */ }
+            .clickable(onClick = onClick)
             .background(if (isActive) MaterialTheme.colorScheme.primary else Color.Transparent)
             .padding(start = 4.dp)
     ) {
@@ -251,7 +285,7 @@ private fun TextSegmentItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "#" + transcriptionItem.timestamp.toString().padStart(2, '0'),
+                text = secondsToText(transcriptionItem.time),
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
                     color = timestampColor
@@ -269,4 +303,10 @@ private fun TextSegmentItem(
             )
         }
     }
+}
+
+private fun secondsToText(seconds: Int): String {
+    val mins = seconds / 60
+    val secs = seconds % 60
+    return "${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}"
 }

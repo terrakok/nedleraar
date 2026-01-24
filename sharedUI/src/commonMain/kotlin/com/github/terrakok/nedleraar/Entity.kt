@@ -25,7 +25,7 @@ data class Lesson(
 )
 
 data class TranscriptionItem(
-    val timestamp: Int,
+    val time: Int,
     val text: String
 )
 
