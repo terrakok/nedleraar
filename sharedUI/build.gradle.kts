@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.metro)
+    alias(libs.plugins.kotlinx.atomicfu)
 }
 
 kotlin {
@@ -58,6 +59,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidyoutubeplayer)
         }
 
         jvmMain.dependencies {
