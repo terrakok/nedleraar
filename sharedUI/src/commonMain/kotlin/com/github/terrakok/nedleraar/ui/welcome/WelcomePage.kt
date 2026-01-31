@@ -8,10 +8,10 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,7 +21,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.github.terrakok.nedleraar.LessonHeader
 import com.github.terrakok.nedleraar.ui.Icons
@@ -65,16 +64,22 @@ fun WelcomePage(
 
     WelcomePageContent(
         items = vm.items,
-        onLessonHeaderClick = onLessonHeaderClick
+        onLessonHeaderClick = onLessonHeaderClick,
+        onPullToRefresh = { vm.refresh() },
+        isRefreshing = vm.isRefreshing,
     )
 }
 
 @Composable
 fun WelcomePageContent(
     items: List<LessonHeader>,
-    onLessonHeaderClick: (LessonHeader) -> Unit = {}
+    onLessonHeaderClick: (LessonHeader) -> Unit = {},
+    isRefreshing: Boolean = false,
+    onPullToRefresh: () -> Unit = {}
 ) {
     val state = rememberLazyGridState()
+    val ptrState = rememberPullToRefreshState()
+
     Scaffold(
         topBar = {
             Surface(
@@ -85,23 +90,35 @@ fun WelcomePageContent(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-
-        LazyVerticalGrid(
-            state = state,
-            columns = GridCells.Adaptive(minSize = 300.dp),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = paddingValues.plus(PaddingValues(horizontal = 16.dp, vertical = 48.dp)),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp)
-        ) {
-            item(
-                span = { GridItemSpan(maxCurrentLineSpan) }
-            ) { Header() }
-            items(items) { lesson ->
-                LessonCard(
-                    lesson = lesson,
-                    onClick = { onLessonHeaderClick(lesson) }
+        PullToRefreshBoxTouchOnly(
+            isRefreshing = isRefreshing,
+            onRefresh = onPullToRefresh,
+            state = ptrState,
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 32.dp),
+                    isRefreshing = isRefreshing,
+                    state = ptrState,
                 )
+            }
+        ) {
+            LazyVerticalGrid(
+                state = state,
+                columns = GridCells.Adaptive(minSize = 300.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = paddingValues.plus(PaddingValues(horizontal = 16.dp, vertical = 48.dp)),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
+                item(
+                    span = { GridItemSpan(maxCurrentLineSpan) }
+                ) { Header() }
+                items(items) { lesson ->
+                    LessonCard(
+                        lesson = lesson,
+                        onClick = { onLessonHeaderClick(lesson) }
+                    )
+                }
             }
         }
     }

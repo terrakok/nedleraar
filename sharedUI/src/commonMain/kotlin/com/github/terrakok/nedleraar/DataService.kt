@@ -33,8 +33,8 @@ class DataService(
     private val headers = mutableListOf<LessonHeader>()
     private val lessons = mutableMapOf<String, Lesson>()
 
-    suspend fun getLessons(): List<LessonHeader> = withContext(dispatcher) {
-        if (headers.isEmpty()) {
+    suspend fun getLessons(forceRefresh: Boolean = false): List<LessonHeader> = withContext(dispatcher) {
+        if (headers.isEmpty() || forceRefresh) {
             val json = httpClient.get(LESSONS_COLLECTION_URL + "index.json").body<JsonArray>()
             val new = json.map {
                 val jo = it.jsonObject
