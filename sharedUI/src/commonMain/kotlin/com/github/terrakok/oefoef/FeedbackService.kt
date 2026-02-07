@@ -1,5 +1,6 @@
 package com.github.terrakok.oefoef
 
+import com.github.terrakok.oefoef.spellcheck.ClientSpellcheck
 import com.russhwolf.settings.Settings
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -25,6 +26,7 @@ class FeedbackService(
     private val dataService: DataService,
     private val settings: Settings,
     private val json: Json,
+    private val clientSpellcheck: ClientSpellcheck,
     appCoroutineScope: CoroutineScope
 ) {
     companion object {
@@ -44,6 +46,11 @@ class FeedbackService(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
+    private val spellCheckRequestFlow = MutableSharedFlow<SpellCheckRequest>(
+        replay = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
     init {
         appCoroutineScope.launch {
             val saved = settings.getStringOrNull(FEEDBACK_STATE_KEY)
@@ -57,6 +64,21 @@ class FeedbackService(
                     Log.d("Saving feedback state")
                     settings.putString(FEEDBACK_STATE_KEY, json.encodeToString(it))
                 }
+        }
+
+        if (clientSpellcheck.enabled) {
+            appCoroutineScope.launch {
+                spellCheckRequestFlow.debounce(500).collect { request ->
+                    val words = request.answer.extractWords()
+                    val incorrectWords = words.filter { !clientSpellcheck.correct(it) }
+                    val prev = getFeedback(request.lessonId, request.questionId)
+                    saveFeedback(
+                        request.lessonId,
+                        request.questionId,
+                        prev.copy(spellcheck = SpellcheckResult(incorrectWords))
+                    )
+                }
+            }
         }
     }
 
@@ -98,6 +120,10 @@ class FeedbackService(
         val prev = getFeedback(lessonId, questionId)
         val newStatus = if (prev.status == FeedbackStatus.DRAFT) FeedbackStatus.DRAFT else FeedbackStatus.OUTDATED
         saveFeedback(lessonId, questionId, prev.copy(answer = answer, status = newStatus))
+
+        if (clientSpellcheck.enabled) {
+            spellCheckRequestFlow.tryEmit(SpellCheckRequest(lessonId, questionId, answer))
+        }
     }
 
     suspend fun checkAnswer(
@@ -139,3 +165,13 @@ class FeedbackService(
         }
     }
 }
+
+private data class SpellCheckRequest(
+    val lessonId: String,
+    val questionId: String,
+    val answer: String
+)
+
+private val wordRegex = Regex("""\p{L}+""")
+private fun String.extractWords(): List<String> =
+    wordRegex.findAll(this).map { it.value }.toList()

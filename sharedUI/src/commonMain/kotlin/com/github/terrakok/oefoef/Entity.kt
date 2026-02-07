@@ -54,7 +54,13 @@ data class FeedbackResult(
 data class Feedback(
     val answer: String,
     val result: FeedbackResult?,
-    val status: FeedbackStatus
+    val status: FeedbackStatus,
+    val spellcheck: SpellcheckResult? = null
+)
+
+@Serializable
+data class SpellcheckResult(
+    val incorrectWords: List<String>
 )
 
 fun EmptyFeedback() = Feedback("", null, FeedbackStatus.DRAFT)

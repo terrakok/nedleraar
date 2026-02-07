@@ -20,8 +20,7 @@ import kotlinx.serialization.json.Json
 import kotlin.reflect.KClass
 
 @SingleIn(AppScope::class)
-@DependencyGraph(AppScope::class)
-internal interface AppGraph: ViewModelGraph {
+internal interface AppGraphBase: ViewModelGraph {
     @SingleIn(AppScope::class)
     @Provides
     fun provideJson(): Json = Json {
@@ -60,11 +59,13 @@ internal interface AppGraph: ViewModelGraph {
     }
 }
 
+internal expect fun createAppGraph(): AppGraphBase
+
 @Composable
 internal fun WithAppGraph(
     content: @Composable () -> Unit,
 ) {
-    val graph = remember { createGraph<AppGraph>() }
+    val graph = remember { createAppGraph() }
     CompositionLocalProvider(
         LocalMetroViewModelFactory provides graph.metroViewModelFactory
     ) {
