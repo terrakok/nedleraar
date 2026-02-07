@@ -351,5 +351,38 @@ object Icons {
             }
         }.build()
     }
+
+    val MenuDots by lazy {
+        ImageVector.Builder(
+            name = "dots-vertical",
+            defaultWidth = 16.dp,
+            defaultHeight = 16.dp,
+            viewportWidth = 15f,
+            viewportHeight = 15f
+        ).apply {
+            path(
+                fill = SolidColor(Color.Black)
+            ) {
+                moveTo(7.5f, 11.375f)
+                curveTo(8.12132f, 11.375f, 8.625f, 11.8787f, 8.625f, 12.5f)
+                curveTo(8.625f, 13.1213f, 8.12132f, 13.625f, 7.5f, 13.625f)
+                curveTo(6.87868f, 13.625f, 6.375f, 13.1213f, 6.375f, 12.5f)
+                curveTo(6.375f, 11.8787f, 6.87868f, 11.375f, 7.5f, 11.375f)
+                close()
+                moveTo(7.5f, 6.375f)
+                curveTo(8.12132f, 6.375f, 8.625f, 6.87868f, 8.625f, 7.5f)
+                curveTo(8.625f, 8.12132f, 8.12132f, 8.625f, 7.5f, 8.625f)
+                curveTo(6.87868f, 8.625f, 6.375f, 8.12132f, 6.375f, 7.5f)
+                curveTo(6.375f, 6.87868f, 6.87868f, 6.375f, 7.5f, 6.375f)
+                close()
+                moveTo(7.5f, 1.375f)
+                curveTo(8.12132f, 1.375f, 8.625f, 1.87868f, 8.625f, 2.5f)
+                curveTo(8.625f, 3.12132f, 8.12132f, 3.625f, 7.5f, 3.625f)
+                curveTo(6.87868f, 3.625f, 6.375f, 3.12132f, 6.375f, 2.5f)
+                curveTo(6.375f, 1.87868f, 6.87868f, 1.375f, 7.5f, 1.375f)
+                close()
+            }
+        }.build()
+    }
 }
 

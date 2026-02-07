@@ -104,4 +104,17 @@ class DataService(
 
         return jo.getValue("result").jsonPrimitive.content
     }
+
+    suspend fun translateTranscriptItem(sentenceIndex: Int, lessonId: String): String {
+        val response = httpClient.get(API_URL + "translate_lesson_item", {
+            parameter("lessonId", lessonId)
+            parameter("sentenceIndex", sentenceIndex)
+        }).body<JsonObject>()
+
+        if (!response.containsKey("translatedText")) {
+            error("No translated text in response")
+        }
+
+        return response.getValue("translatedText").jsonPrimitive.content
+    }
 }
